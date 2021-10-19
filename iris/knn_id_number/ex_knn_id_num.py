@@ -20,8 +20,7 @@ import operator
 from os import listdir
 import numpy as np
 
-
-# from PIL import Image
+from PIL import Image
 
 
 def img_to_vector(filename):
@@ -86,5 +85,63 @@ def handWritingClassTeat():
     print(len(error))
 
 
+"""
+训练数据和测试数据都是txt格式的，
+而现在却都是自己手写的数字并拍出来的照片，
+因此我需要将照片转成32×32的txt文本
+首先，拍出来的图片都是彩色图片，它的内部格式是3维的，
+而我们要让其为二维的，首先得将它转换为灰度图片
+"""
+
+
+def trans_pic_to_grey(origin_path):
+    ima = Image.open(origin_path)
+    ima = ima.resize((32, 32))
+    grey_image = ima.convert("L")
+    save_path = origin_path.split('.')[-2] + "_grey.jpg"
+    grey_image.save(save_path)
+    return save_path
+
+
+# 32×32的灰度图片，将其变成0和1
+def trans_grey_to_binary(origin_path):
+    imag = Image.open(origin_path)
+    save_path = origin_path.split('.')[-2] + "_.txt"
+    fh = open(save_path, 'w')
+    for i in range(imag.size[1]):
+        for j in range(imag.size[0]):
+            color = imag.getpixel((j, i))
+            if color > 100:
+                color = 0
+            else:
+                color = 1
+            fh.write(str(color))
+        fh.write("\n")
+    fh.close()
+    return save_path
+
+
+def my_handWriting_image_distinguish(pic_path):
+    pic_path = trans_pic_to_grey(pic_path)
+    pic_path = trans_grey_to_binary(pic_path)
+    hw_labels = []
+    train_data = listdir("trainingDigits")
+    m_train = len(train_data)
+    # 生成一个列数为train_matrix，行为1024的零矩阵
+    train_matrix = np.zeros((m_train, 1024))
+    for i in range(m_train):
+        file_name_str = train_data[i]  # 获取某一个文件名
+        file_str = file_name_str.split('.')[0]  # 去掉.txt
+        # 获取第一个字符，即它是哪个数字
+        file_num = int(file_str.split('_')[0])
+        hw_labels.append(file_num)
+        train_matrix[i, :] = img_to_vector("trainingDigits/%s" % file_name_str)
+    vector_under_test = img_to_vector(pic_path)
+    classify_result = classify0(vector_under_test, train_matrix, hw_labels, 5)
+    print("result is : %d" % int(classify_result))
+
+
 if __name__ == "__main__":
-    handWritingClassTeat()
+    # handWritingClassTeat()
+    for i in range(3):
+        my_handWriting_image_distinguish("image%d"%i + '.jpg')
